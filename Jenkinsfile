@@ -6,7 +6,12 @@ pipeline {
             steps {
                 sh '''
                     apt-get update
+                    apt-get install -y python3-pip curl unzip wget gnupg
+
+                    # Install Chromium manually for Debian Bookworm
                     apt-get install -y chromium chromium-driver
+
+                    # Upgrade pip & install Robot Framework dependencies
                     pip install --upgrade pip
                     pip install robotframework robotframework-seleniumlibrary selenium webdriver-manager
                 '''
@@ -17,7 +22,12 @@ pipeline {
             steps {
                 sh '''
                     mkdir -p results
-                    robot -d results tests/
+                    export PATH=$PATH:/usr/bin
+                    export CHROME_BIN=/usr/bin/chromium
+                    export CHROMEDRIVER=/usr/bin/chromedriver
+
+                    # Run Robot Framework tests in headless mode
+                    robot -v BROWSER:headlesschrome -d results tests/
                 '''
             }
         }
