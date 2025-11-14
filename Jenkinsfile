@@ -3,36 +3,35 @@ pipeline {
 
     stages {
 
-        stage('Setup Python Venv') {
+        stage('Setup Environment') {
             steps {
                 sh '''
-                    python3 -m venv robotenv
-                    . robotenv/bin/activate
+                    apt-get update
+                    apt-get install -y chromium chromium-driver python3-pip
 
                     pip install --upgrade pip
-                    pip install robotframework
+                    pip install robotframework selenium robotframework-seleniumlibrary
                 '''
             }
         }
 
-        stage('Run Tests') {
+        stage('Run Headless UI Tests') {
             steps {
                 sh '''
-                    . robotenv/bin/activate
+                    export PATH=$PATH:/usr/lib/chromium-browser/
+
                     robot -d results tests/
                 '''
             }
         }
 
-        stage('Publish Reports') {
+        stage('Publish Report') {
             steps {
                 publishHTML([
-                    allowMissing: false,
-                    keepAll: true,
-                    alwaysLinkToLastBuild: true,
                     reportDir: 'results',
                     reportFiles: 'report.html',
-                    reportName: 'Robot Report'
+                    reportName: 'Robot Headless UI Report',
+                    keepAll: true
                 ])
             }
         }

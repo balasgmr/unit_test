@@ -1,10 +1,46 @@
 *** Settings ***
 Library    SeleniumLibrary
-Suite Setup    Open Browser    https://example.com    chrome
-Suite Teardown    Close Browser
+
+*** Variables ***
+${URL}    https://demoqa.com
+
+${HEADLESS}    --headless --no-sandbox --disable-dev-shm-usage --disable-gpu
+
+*** Keywords ***
+Open Headless Browser
+    Open Browser    ${URL}    chrome    options=${HEADLESS}
 
 *** Test Cases ***
-Verify Page Title
-    ${title}=    Get Title
-    Log To Console    Page title is: ${title}
-    Should Contain    ${title}    Example
+
+Open Home Page
+    Open Headless Browser
+    Title Should Be    DEMOQA
+    Close Browser
+
+Textbox Form Submission
+    Open Browser    ${URL}/text-box    chrome    options=${HEADLESS}
+    Input Text    id:userName    Bala
+    Input Text    id:userEmail   bala@example.com
+    Input Text    id:currentAddress   Madurai
+    Input Text    id:permanentAddress India
+    Click Button    id:submit
+    Page Should Contain    Bala
+    Close Browser
+
+Radio Button Test
+    Open Browser    ${URL}/radio-button    chrome    options=${HEADLESS}
+    Click Element   xpath=//label[text()='Yes']
+    Page Should Contain    You have selected Yes
+    Close Browser
+
+Checkbox Test
+    Open Browser    ${URL}/checkbox    chrome    options=${HEADLESS}
+    Click Element    xpath=//span[@class='rct-checkbox']
+    Page Should Contain    You have selected
+    Close Browser
+
+Dropdown Selection
+    Open Browser    ${URL}/select-menu    chrome    options=${HEADLESS}
+    Select From List By Label    id:oldSelectMenu    Purple
+    List Selection Should Be    id:oldSelectMenu    Purple
+    Close Browser
