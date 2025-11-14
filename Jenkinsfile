@@ -7,10 +7,17 @@ pipeline {
             steps {
                 sh '''
                     apt-get update
-                    apt-get install -y chromium chromium-driver python3-pip
+                    apt-get install -y chromium chromium-driver python3-venv
 
-                    pip install --upgrade pip
-                    pip install robotframework selenium robotframework-seleniumlibrary
+                    # Create a virtual environment
+                    python3 -m venv robotenv
+
+                    # Activate venv
+                    . robotenv/bin/activate
+
+                    # Install dependencies inside venv
+                    pip install --upgrade pip --break-system-packages
+                    pip install robotframework robotframework-seleniumlibrary selenium webdriver-manager --break-system-packages
                 '''
             }
         }
@@ -18,6 +25,10 @@ pipeline {
         stage('Run Headless UI Tests') {
             steps {
                 sh '''
+                    . robotenv/bin/activate
+
+                    export BROWSER=chromium
+
                     robot -d results tests/
                 '''
             }
