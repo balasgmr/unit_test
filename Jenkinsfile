@@ -5,9 +5,9 @@ pipeline {
 
         stage('Setup Python Environment') {
             steps {
-                sh '''
+                sh '''#!/bin/bash
                     # Activate virtual environment
-                    source /opt/robot-env/bin/activate
+                    . /opt/robot-env/bin/activate
 
                     # Upgrade pip inside venv
                     pip install --upgrade pip
@@ -23,8 +23,8 @@ pipeline {
 
         stage('Run Robot Tests') {
             steps {
-                sh '''
-                    source /opt/robot-env/bin/activate
+                sh '''#!/bin/bash
+                    . /opt/robot-env/bin/activate
                     
                     mkdir -p results
 
@@ -38,17 +38,10 @@ pipeline {
 
         stage('Publish Reports') {
             steps {
+
                 archiveArtifacts artifacts: 'results/*', fingerprint: true
 
                 publishHTML([
                     reportDir: 'results',
                     reportFiles: 'report.html',
                     reportName: 'Robot Framework Report',
-                    allowMissing: false,
-                    keepAll: true,
-                    alwaysLinkToLastBuild: true
-                ])
-            }
-        }
-    }
-}
