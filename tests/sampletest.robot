@@ -6,17 +6,24 @@ ${URL}    https://demoqa.com
 
 *** Keywords ***
 Open Headless Browser
-    ${options}=    Create List    --headless    --no-sandbox    --disable-dev-shm-usage    --disable-gpu
-    Create Webdriver    Chrome    options=${options}
+    ${options}=    Evaluate    sys.modules['selenium.webdriver'].ChromeOptions()    sys, selenium.webdriver
+    Call Method    ${options}    add_argument    --headless
+    Call Method    ${options}    add_argument    --no-sandbox
+    Call Method    ${options}    add_argument    --disable-dev-shm-usage
+    Call Method    ${options}    add_argument    --disable-gpu
+    Create WebDriver    Chrome    options=${options}
     Go To    ${URL}
 
-Open Headless Browser To    ${path}
-    ${options}=    Create List    --headless    --no-sandbox    --disable-dev-shm-usage    --disable-gpu
-    Create Webdriver    Chrome    options=${options}
-    Go To    ${URL}${path}
+Open Headless Browser To    ${PATH}
+    ${options}=    Evaluate    sys.modules['selenium.webdriver'].ChromeOptions()    sys, selenium.webdriver
+    Call Method    ${options}    add_argument    --headless
+    Call Method    ${options}    add_argument    --no-sandbox
+    Call Method    ${options}    add_argument    --disable-dev-shm-usage
+    Call Method    ${options}    add_argument    --disable-gpu
+    Create WebDriver    Chrome    options=${options}
+    Go To    ${URL}${PATH}
 
 *** Test Cases ***
-
 Open Home Page
     Open Headless Browser
     Title Should Be    DEMOQA
