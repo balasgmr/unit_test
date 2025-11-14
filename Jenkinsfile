@@ -1,17 +1,23 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'python:3.10'
+            args '-u root'
+        }
+    }
 
     stages {
+
         stage('Setup') {
             steps {
                 sh '''
                     apt-get update
-                    apt-get install -y python3-pip curl unzip wget gnupg
+                    apt-get install -y curl unzip wget gnupg
 
-                    # Install Chromium manually for Debian Bookworm
+                    # Install Chromium & ChromeDriver
                     apt-get install -y chromium chromium-driver
 
-                    # Upgrade pip & install Robot Framework dependencies
+                    # Upgrade pip + Install Robot Dependencies
                     pip install --upgrade pip
                     pip install robotframework robotframework-seleniumlibrary selenium webdriver-manager
                 '''
@@ -22,11 +28,11 @@ pipeline {
             steps {
                 sh '''
                     mkdir -p results
-                    export PATH=$PATH:/usr/bin
+
                     export CHROME_BIN=/usr/bin/chromium
                     export CHROMEDRIVER=/usr/bin/chromedriver
 
-                    # Run Robot Framework tests in headless mode
+                    # Run Robot Framework tests
                     robot -v BROWSER:headlesschrome -d results tests/
                 '''
             }
@@ -35,6 +41,7 @@ pipeline {
         stage('Archive Reports') {
             steps {
                 archiveArtifacts artifacts: 'results/*', fingerprint: true
+
                 publishHTML(target: [
                     allowMissing: false,
                     alwaysLinkToLastBuild: true,
