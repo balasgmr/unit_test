@@ -18,8 +18,6 @@ pipeline {
         stage('Run Headless UI Tests') {
             steps {
                 sh '''
-                    export PATH=$PATH:/usr/lib/chromium-browser/
-
                     robot -d results tests/
                 '''
             }
@@ -30,8 +28,10 @@ pipeline {
                 publishHTML([
                     reportDir: 'results',
                     reportFiles: 'report.html',
-                    reportName: 'Robot Headless UI Report',
-                    keepAll: true
+                    reportName: 'Robot Report',
+                    allowMissing: false,
+                    keepAll: true,
+                    alwaysLinkToLastBuild: true
                 ])
             }
         }
