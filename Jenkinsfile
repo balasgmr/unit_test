@@ -1,16 +1,28 @@
 pipeline {
     agent any
 
+    environment {
+        // Define browser environment variables for Robot Framework
+        BROWSER = 'chromium'
+        WDM_LOG = '0'
+        WDM_PRINT_FIRST_LINE = '0'
+    }
+
     stages {
 
-        stage('Setup Environment') {
+        stage('Checkout SCM') {
+            steps {
+                git branch: 'main', url: 'https://github.com/balasgmr/robot_jenkins_poc.git'
+            }
+        }
+
+        stage('Setup Python Environment') {
             steps {
                 sh '''
-                    apt-get update
-                    apt-get install -y chromium chromium-driver python3-venv
-
+                    # Create a Python virtual environment
                     python3 -m venv robotenv
 
+                    # Activate virtual environment and install required Python packages
                     . robotenv/bin/activate && \
                     pip install --upgrade pip --break-system-packages && \
                     pip install robotframework robotframework-seleniumlibrary selenium webdriver-manager --break-system-packages
@@ -21,14 +33,13 @@ pipeline {
         stage('Run Headless UI Tests') {
             steps {
                 sh '''
+                    # Activate virtual environment
                     . robotenv/bin/activate
 
+                    # Create results folder
                     mkdir -p results
 
-                    export BROWSER=chromium
-                    export WDM_LOG=0
-                    export WDM_PRINT_FIRST_LINE=0
-
+                    # Run Robot Framework tests
                     robot -d results tests/
                 '''
             }
@@ -39,12 +50,18 @@ pipeline {
                 publishHTML([
                     reportDir: 'results',
                     reportFiles: 'report.html',
-                    reportName: 'Robot Report',
+                    reportName: 'Robot Framework Report',
                     allowMissing: false,
                     keepAll: true,
                     alwaysLinkToLastBuild: true
                 ])
             }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline finished. Check Robot Framework report in the Build page."
         }
     }
 }
