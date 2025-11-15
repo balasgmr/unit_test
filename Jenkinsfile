@@ -2,65 +2,57 @@ pipeline {
     agent any
 
     environment {
-        BROWSER = 'chromium'
-        WDM_LOG = '0'
-        WDM_PRINT_FIRST_LINE = '0'
+        VENV_DIR = "${WORKSPACE}/robotenv"
     }
 
     stages {
-
         stage('Checkout SCM') {
             steps {
-                git branch: 'main', url: 'https://github.com/balasgmr/robot_jenkins_poc.git'
+                git url: 'https://github.com/balasgmr/robot_jenkins_poc.git', branch: 'main'
             }
         }
 
         stage('Setup Python Environment') {
             steps {
-                sh '''
-                    # Create a Python virtual environment
-                    python3 -m venv robotenv
-
-                    # Activate virtual environment and install Python packages
-                    . robotenv/bin/activate && \
-                    pip install --upgrade pip --break-system-packages && \
+                sh """
+                    python3 -m venv ${VENV_DIR}
+                    . ${VENV_DIR}/bin/activate
+                    pip install --upgrade pip --break-system-packages
                     pip install robotframework robotframework-seleniumlibrary selenium webdriver-manager --break-system-packages
-                '''
+                """
             }
         }
 
-        stage('Run Headless UI Tests') {
+        stage('Run Robot Tests') {
             steps {
-                sh '''
-                    # Activate virtual environment
-                    . robotenv/bin/activate
-
-                    # Create results folder
+                sh """
+                    . ${VENV_DIR}/bin/activate
                     mkdir -p results
-
-                    # Run Robot Framework tests headlessly
                     robot -d results tests/
-                '''
+                """
             }
         }
 
-        stage('Publish Report') {
+        stage('Publish Reports') {
             steps {
-                publishHTML([
-                    reportDir: 'results',
-                    reportFiles: 'report.html',
-                    reportName: 'Robot Framework Report',
-                    allowMissing: false,
-                    keepAll: true,
-                    alwaysLinkToLastBuild: true
-                ])
+                // 1️⃣ Archive HTML reports so they are downloadable
+                archiveArtifacts artifacts: 'results/*.html', allowEmptyArchive: true
+
+                // 2️⃣ Optional: Publish Robot Framework test summary in Jenkins
+                // Requires "Robot Framework Plugin" installed
+                robot outputPath: 'results', 
+                      outputFileName: 'output.xml', 
+                      logFileName: 'log.html', 
+                      reportFileName: 'report.html', 
+                      passThreshold: 100, 
+                      unstableThreshold: 80
             }
         }
     }
 
     post {
         always {
-            echo "Pipeline finished. Check Robot Framework report in the Build page."
+            echo "Build finished. Check results/ folder and Jenkins Robot report."
         }
     }
 }
