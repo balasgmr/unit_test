@@ -19,12 +19,12 @@ pipeline {
 
         stage('Setup Python Environment') {
             steps {
-                sh """
+                sh '''
                 python3 -m venv robotenv
                 . robotenv/bin/activate
                 pip install --upgrade pip
                 pip install robotframework robotframework-seleniumlibrary selenium webdriver-manager robotframework-requests
-                """
+                '''
             }
         }
 
@@ -54,10 +54,11 @@ pipeline {
                 expression { params.TEST_TYPE == 'BOTH' }
             }
             steps {
-                sh """
+                sh '''
                 mkdir -p k6_results
-                k6 run --out json=k6_results/perf.json tests/perf/load_test.js
-                """
+                docker run --rm -v $WORKSPACE:/workspace -w /workspace loadimpact/k6:latest \
+                    k6 run --out json=k6_results/perf.json tests/perf/load_test.js
+                '''
             }
         }
 
