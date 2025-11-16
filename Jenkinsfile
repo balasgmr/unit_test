@@ -10,7 +10,7 @@ pipeline {
     }
 
     environment {
-        VENV_DIR = "${WORKSPACE}/robotenv"
+        VENV_DIR = "${WORKSPACE}\\robotenv"
     }
 
     stages {
@@ -23,11 +23,10 @@ pipeline {
 
         stage('Setup Python Environment') {
             steps {
-                sh """
-                    python3 -m venv ${VENV_DIR}
-                    . ${VENV_DIR}/bin/activate
-                    pip install --upgrade pip
-                    pip install robotframework robotframework-seleniumlibrary selenium webdriver-manager robotframework-requests
+                powershell """
+                    python -m venv ${env.VENV_DIR}
+                    ${env.VENV_DIR}\\Scripts\\pip.exe install --upgrade pip
+                    ${env.VENV_DIR}\\Scripts\\pip.exe install robotframework robotframework-seleniumlibrary selenium webdriver-manager robotframework-requests
                 """
             }
         }
@@ -36,16 +35,14 @@ pipeline {
             steps {
                 script {
                     if (params.TEST_TYPE == 'UI' || params.TEST_TYPE == 'BOTH') {
-                        sh """
-                            . ${VENV_DIR}/bin/activate
-                            robot tests/ui
+                        powershell """
+                            ${env.VENV_DIR}\\Scripts\\python.exe -m robot tests\\ui
                         """
                     }
 
                     if (params.TEST_TYPE == 'API' || params.TEST_TYPE == 'BOTH') {
-                        sh """
-                            . ${VENV_DIR}/bin/activate
-                            robot tests/api
+                        powershell """
+                            ${env.VENV_DIR}\\Scripts\\python.exe -m robot tests\\api
                         """
                     }
                 }
@@ -57,8 +54,8 @@ pipeline {
                 expression { return params.TEST_TYPE == 'BOTH' }
             }
             steps {
-                sh """
-                    k6 run tests/perf/load_test.js
+                powershell """
+                    k6 run tests\\perf\\load_test.js
                 """
             }
         }
