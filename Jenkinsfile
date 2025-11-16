@@ -17,6 +17,17 @@ pipeline {
             }
         }
 
+        stage('Setup Python Environment') {
+            steps {
+                sh """
+                python3 -m venv robotenv
+                . robotenv/bin/activate
+                pip install --upgrade pip
+                pip install robotframework robotframework-seleniumlibrary selenium webdriver-manager robotframework-requests
+                """
+            }
+        }
+
         stage('Run Robot Tests') {
             steps {
                 script {
@@ -30,13 +41,8 @@ pipeline {
 
                     for (t in testTypes) {
                         sh """
-                        docker run --rm -v \$WORKSPACE:/workspace -w /workspace python:3.11-slim bash -c '
-                            python3 -m venv robotenv &&
-                            . robotenv/bin/activate &&
-                            pip install --upgrade pip &&
-                            pip install robotframework robotframework-seleniumlibrary selenium webdriver-manager robotframework-requests &&
-                            robot -d results/${t} tests/${t}
-                        '
+                        . robotenv/bin/activate
+                        robot -d results/${t} tests/${t}
                         """
                     }
                 }
@@ -49,15 +55,15 @@ pipeline {
             }
             steps {
                 sh """
-                docker run --rm -v \$WORKSPACE:/workspace -w /workspace loadimpact/k6:latest \
-                    k6 run --out json=k6_results/perf.json tests/perf/load_test.js
+                mkdir -p k6_results
+                k6 run --out json=k6_results/perf.json tests/perf/load_test.js
                 """
             }
         }
 
         stage('Publish Results') {
             steps {
-                // Only archive Robot Framework XML and k6 JSON, no extra HTML reports
+                // Archive only XML for Robot and JSON for k6
                 archiveArtifacts artifacts: 'results/**/*.xml', allowEmptyArchive: true
                 archiveArtifacts artifacts: 'k6_results/*.json', allowEmptyArchive: true
             }
