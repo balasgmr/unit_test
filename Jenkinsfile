@@ -17,47 +17,51 @@ pipeline {
             }
         }
 
-        stage('Run Robot Tests') {
+        stage('Setup Python Environment') {
             steps {
-                script {
-                    if (params.TEST_TYPE == 'UI' || params.TEST_TYPE == 'BOTH') {
-                        sh '''
-                        docker run --rm -v $WORKSPACE:/workspace -w /workspace python:3.11-slim bash -c "
-                            python3 -m venv robotenv &&
-                            . robotenv/bin/activate &&
-                            pip install --upgrade pip &&
-                            pip install robotframework robotframework-seleniumlibrary selenium webdriver-manager robotframework-requests &&
-                            mkdir -p results &&
-                            robot -d results tests/ui
-                        "
-                        '''
-                    }
+                powershell '''
+                    python -m venv robotenv
+                    .\\robotenv\\Scripts\\activate
+                    python -m pip install --upgrade pip
+                    pip install robotframework robotframework-seleniumlibrary selenium webdriver-manager robotframework-requests
+                '''
+            }
+        }
 
-                    if (params.TEST_TYPE == 'API' || params.TEST_TYPE == 'BOTH') {
-                        sh '''
-                        docker run --rm -v $WORKSPACE:/workspace -w /workspace python:3.11-slim bash -c "
-                            python3 -m venv robotenv &&
-                            . robotenv/bin/activate &&
-                            pip install --upgrade pip &&
-                            pip install robotframework robotframework-seleniumlibrary selenium webdriver-manager robotframework-requests &&
-                            mkdir -p results &&
-                            robot -d results tests/api
-                        "
-                        '''
-                    }
-                }
+        stage('Run Robot UI Tests') {
+            when {
+                expression { params.TEST_TYPE == 'UI' || params.TEST_TYPE == 'BOTH' }
+            }
+            steps {
+                powershell '''
+                    .\\robotenv\\Scripts\\activate
+                    mkdir results
+                    robot -d results tests\\ui
+                '''
+            }
+        }
+
+        stage('Run Robot API Tests') {
+            when {
+                expression { params.TEST_TYPE == 'API' || params.TEST_TYPE == 'BOTH' }
+            }
+            steps {
+                powershell '''
+                    .\\robotenv\\Scripts\\activate
+                    mkdir results
+                    robot -d results tests\\api
+                '''
             }
         }
 
         stage('Run k6 Performance Test') {
             when {
-                expression { return params.TEST_TYPE == 'BOTH' }
+                expression { params.TEST_TYPE == 'BOTH' }
             }
             steps {
-                sh '''
-                mkdir -p k6_results
-                docker run --rm -v $WORKSPACE:/workspace -w /workspace loadimpact/k6:latest \
-                    k6 run --out json=k6_results/perf.json tests/perf/load_test.js
+                powershell '''
+                    mkdir k6_results
+                    k6 run --out json=k6_results\\perf.json tests\\perf\\load_test.js
                 '''
             }
         }
