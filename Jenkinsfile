@@ -20,10 +20,10 @@ pipeline {
         stage('Setup Python Environment') {
             steps {
                 sh '''
-                python3 -m venv robotenv
-                . robotenv/bin/activate
-                pip install --upgrade pip
-                pip install robotframework robotframework-seleniumlibrary selenium webdriver-manager robotframework-requests
+                    python3 -m venv robotenv
+                    . robotenv/bin/activate
+                    pip install --upgrade pip
+                    pip install robotframework robotframework-seleniumlibrary selenium webdriver-manager robotframework-requests
                 '''
             }
         }
@@ -32,6 +32,7 @@ pipeline {
             steps {
                 script {
                     def testTypes = []
+
                     if (params.TEST_TYPE == 'UI' || params.TEST_TYPE == 'BOTH') {
                         testTypes << 'ui'
                     }
@@ -41,8 +42,8 @@ pipeline {
 
                     for (t in testTypes) {
                         sh """
-                        . robotenv/bin/activate
-                        robot -d results/${t} tests/${t}
+                            . robotenv/bin/activate
+                            robot -d results/${t} tests/${t}
                         """
                     }
                 }
@@ -55,16 +56,19 @@ pipeline {
             }
             steps {
                 sh '''
-                mkdir -p k6_results
-                docker run --rm -v $WORKSPACE:/workspace -w /workspace loadimpact/k6:latest \
-                    k6 run --out json=k6_results/perf.json tests/perf/load_test.js
+                    mkdir -p k6_results
+                    docker run --rm \
+                        -v $WORKSPACE:/workspace \
+                        -w /workspace \
+                        grafana/k6:latest run \
+                        --out json=k6_results/perf.json \
+                        tests/perf/load_test.js
                 '''
             }
         }
 
         stage('Publish Results') {
             steps {
-                // Archive only XML for Robot and JSON for k6
                 archiveArtifacts artifacts: 'results/**/*.xml', allowEmptyArchive: true
                 archiveArtifacts artifacts: 'k6_results/*.json', allowEmptyArchive: true
             }
