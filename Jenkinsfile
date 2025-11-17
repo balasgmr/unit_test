@@ -5,7 +5,7 @@ pipeline {
         choice(
             name: 'TEST_TYPE',
             choices: ['UI', 'API', 'PERFORMANCE'],
-            description: 'Choose which test suite to run'
+            description: 'Choose test suite to run'
         )
     }
 
@@ -25,21 +25,21 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh """
-                    python3 -m pip install --upgrade pip
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install --upgrade pip
                     pip install -r requirements.txt
                 """
             }
         }
 
-        /* -----------------------------------------
-              UI TESTS
-        ----------------------------------------- */
         stage('Run UI Tests') {
-            when { expression { params.TEST_TYPE == "UI" } }
+            when { expression { params.TEST_TYPE == 'UI' } }
             steps {
-                echo "Running UI Robot tests..."
+                echo "Running UI Tests..."
                 sh """
                     mkdir -p ${ROBOT_REPORT_DIR}
+                    . venv/bin/activate
                     robot -d ${ROBOT_REPORT_DIR} tests/ui
                 """
             }
@@ -50,15 +50,13 @@ pipeline {
             }
         }
 
-        /* -----------------------------------------
-              API TESTS
-        ----------------------------------------- */
         stage('Run API Tests') {
-            when { expression { params.TEST_TYPE == "API" } }
+            when { expression { params.TEST_TYPE == 'API' } }
             steps {
-                echo "Running API Robot tests..."
+                echo "Running API Tests..."
                 sh """
                     mkdir -p ${ROBOT_REPORT_DIR}
+                    . venv/bin/activate
                     robot -d ${ROBOT_REPORT_DIR} tests/api
                 """
             }
@@ -69,11 +67,8 @@ pipeline {
             }
         }
 
-        /* -----------------------------------------
-              PERFORMANCE (k6)
-        ----------------------------------------- */
         stage('Run Performance Tests') {
-            when { expression { params.TEST_TYPE == "PERFORMANCE" } }
+            when { expression { params.TEST_TYPE == 'PERFORMANCE' } }
             steps {
                 echo "Running k6 load test..."
                 sh """
@@ -87,7 +82,6 @@ pipeline {
                 }
             }
         }
-
     }
 
     post {
