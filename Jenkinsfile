@@ -2,7 +2,7 @@ pipeline {
 
     agent any
 
-    /* ------------ CHOOSE WHICH TESTS TO RUN ------------------ */
+    /* ------------ TEST SELECTION (UI / API / K6 / ALL) ------------ */
     parameters {
         choice(
             name: 'TEST_TYPE',
@@ -14,7 +14,7 @@ pipeline {
     stages {
 
         /* ---------------- CHECKOUT ---------------- */
-        stage('Checkout SCM') {
+        stage('Checkout Code') {
             steps {
                 checkout scm
             }
@@ -30,8 +30,8 @@ pipeline {
                     python3 -m venv robotenv
                     . robotenv/bin/activate
                     pip install --upgrade pip
-                    pip install robotframework robotframework-seleniumlibrary selenium \
-                                webdriver-manager robotframework-requests
+                    pip install robotframework robotframework-seleniumlibrary \
+                                robotframework-requests selenium webdriver-manager
                 '''
             }
         }
@@ -43,6 +43,7 @@ pipeline {
             }
             steps {
                 sh '''
+                    echo "Running UI Tests..."
                     . robotenv/bin/activate
                     robot -d results/ui tests/ui
                 '''
@@ -56,6 +57,7 @@ pipeline {
             }
             steps {
                 sh '''
+                    echo "Running API Tests..."
                     . robotenv/bin/activate
                     robot -d results/api tests/api
                 '''
@@ -69,10 +71,15 @@ pipeline {
             }
             steps {
                 sh '''
+                    echo "Running k6 Performance Test..."
+
                     mkdir -p k6_results
 
                     echo "WORKSPACE = $WORKSPACE"
                     ls -R $WORKSPACE/tests/perf
+
+                    # IMPORTANT FIX: k6 CANNOT READ FILE WITHOUT PERMISSIONS
+                    chmod -R 755 $WORKSPACE/tests
 
                     docker run --rm \
                         -v "$WORKSPACE":/workspace \
@@ -84,8 +91,8 @@ pipeline {
             }
         }
 
-        /* ---------------- PUBLISH ---------------- */
-        stage('Publish Results') {
+        /* ---------------- REPORT PUBLISH ---------------- */
+        stage('Publish Reports') {
             steps {
                 archiveArtifacts artifacts: 'results/ui/**', allowEmptyArchive: true
                 archiveArtifacts artifacts: 'results/api/**', allowEmptyArchive: true
@@ -96,7 +103,7 @@ pipeline {
 
     post {
         always {
-            echo "Build completed — check results folder."
+            echo "Pipeline Finished — Check Results Folder"
         }
     }
 }
