@@ -14,18 +14,6 @@ pipeline {
             }
         }
 
-        stage('Install Chrome') {
-            steps {
-                sh """
-                apt-get update
-                apt-get install -y wget gnupg2
-                wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-                apt-get install -y ./google-chrome-stable_current_amd64.deb || apt --fix-broken install -y
-                google-chrome --version
-                """
-            }
-        }
-
         stage('Install Dependencies') {
             steps {
                 sh """
