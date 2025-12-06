@@ -24,16 +24,16 @@ Textbox Form Submission
     Input Text    id:permanentAddress   India
     Scroll Element Into View    id:submit
     Click Button                id:submit
-    Page Should Contain    Bala
+    Page Should Contain         Bala
 
 Radio Button Test
     Open Headless Browser To    /radio-button
     Wait Until Element Is Visible    css:label[for="yesRadio"]
-    Click Element                css:label[for="yesRadio"]
-    Page Should Contain          You have selected Yes
+    Click Element                    css:label[for="yesRadio"]
+    Page Should Contain              You have selected Yes
 
 Checkbox Test
     Open Headless Browser To    /checkbox
     Wait Until Element Is Visible    css:.rct-node .rct-checkbox
-    Click Element                css:.rct-node .rct-checkbox
-    Page Should Contain          You have selected
+    Click Element                    css:.rct-node .rct-checkbox
+    Page Should Contain              You have selected

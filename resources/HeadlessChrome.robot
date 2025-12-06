@@ -1,5 +1,7 @@
 *** Settings ***
 Library    SeleniumLibrary
+Library    OperatingSystem
+Library    BuiltIn
 
 *** Keywords ***
 Open Headless Chrome
@@ -11,4 +13,6 @@ Open Headless Chrome
     Call Method    ${options}    add_argument    --disable-software-rasterizer
     Call Method    ${options}    add_argument    --remote-debugging-port=9222
     Call Method    ${options}    add_argument    --window-size=1920,1080
-    Create WebDriver    Chrome    options=${options}    executable_path=/usr/local/bin/chromedriver
+    # Ensure ChromeDriver path is absolute
+    ${chrome_path}=    Set Variable    /usr/local/bin/chromedriver
+    Create WebDriver    Chrome    options=${options}    executable_path=${chrome_path}

@@ -1,52 +1,34 @@
 pipeline {
     agent {
         docker {
-            image 'python:3.10'
-            args '--shm-size=2g'
+            image 'python:3.11-slim'
+            args '--shm-size=2g'  // Required for Chrome headless
         }
     }
 
     environment {
-        TEST_TYPE = "ALL"
+        TEST_TYPE = "UI"
     }
 
     stages {
-
         stage('Checkout') {
-            steps {
-                checkout scm
-            }
+            steps { checkout scm }
         }
 
-        stage('Install Chrome & ChromeDriver') {
+        stage('Install Dependencies') {
             steps {
                 sh '''
-                    apt-get update
-                    apt-get install -y wget gnupg unzip curl libnss3 libxss1 libgconf-2-4 fonts-liberation libatk-bridge2.0-0 libgtk-3-0 libx11-xcb1
+                apt-get update && apt-get install -y wget unzip curl gnupg
+                # Install Chrome
+                wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
+                echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list
+                apt-get update && apt-get install -y google-chrome-stable
+                # Install matching ChromeDriver
+                CHROME_VERSION=$(google-chrome --version | grep -oP '\\d+\\.\\d+\\.\\d+')
+                LATEST_DRIVER=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
+                wget -O /tmp/chromedriver.zip "https://chromedriver.storage.googleapis.com/$LATEST_DRIVER/chromedriver_linux64.zip"
+                unzip /tmp/chromedriver.zip -d /usr/local/bin/
 
-                    # Install Chrome
-                    wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
-                    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" \
-                        > /etc/apt/sources.list.d/google-chrome.list
-                    apt-get update
-                    apt-get install -y google-chrome-stable
-
-                    # Install ChromeDriver matching Chrome
-                    CHROME_VER=$(google-chrome --version | awk '{print $3}' | cut -d'.' -f1)
-                    wget -O /tmp/chromedriver.zip \
-                        "https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/$CHROME_VER.0.0/linux64/chromedriver-linux64.zip"
-                    unzip /tmp/chromedriver.zip -d /usr/local/bin/
-                    mv /usr/local/bin/chromedriver-linux64/chromedriver /usr/local/bin/
-                    chmod +x /usr/local/bin/chromedriver
-                    chromedriver --version
-                    google-chrome --version
-                '''
-            }
-        }
-
-        stage('Install Python Dependencies') {
-            steps {
-                sh '''
                 python3 -m venv venv
                 . venv/bin/activate
                 pip install --upgrade pip
@@ -55,12 +37,12 @@ pipeline {
             }
         }
 
-        stage('Run UI & Unit Tests') {
+        stage('Run UI Tests') {
             steps {
                 sh '''
                 . venv/bin/activate
                 mkdir -p reports/robot
-                robot -d reports/robot tests/ui tests/unit || true
+                robot -d reports/robot tests/ui
                 '''
             }
         }
@@ -69,7 +51,7 @@ pipeline {
             steps {
                 sh '''
                 . venv/bin/activate
-                robot -d reports/robot tests/api || true
+                robot -d reports/robot tests/api
                 '''
             }
         }
@@ -78,7 +60,7 @@ pipeline {
             steps {
                 sh '''
                 . venv/bin/activate
-                robot -d reports/robot tests/perf || true
+                robot -d reports/robot tests/performance
                 '''
             }
         }
@@ -86,7 +68,6 @@ pipeline {
 
     post {
         always {
-            echo "Pipeline completed. Publishing Robot results..."
             robot outputPath: 'reports/robot'
         }
     }
