@@ -13,6 +13,7 @@ Open Headless Chrome
     Call Method    ${options}    add_argument    --disable-software-rasterizer
     Call Method    ${options}    add_argument    --remote-debugging-port=9222
     Call Method    ${options}    add_argument    --window-size=1920,1080
-    # Ensure ChromeDriver path is absolute
-    ${chrome_path}=    Set Variable    /usr/local/bin/chromedriver
+
+    # If ChromeDriver is installed via webdriver-manager, you can use:
+    ${chrome_path}=    Evaluate    __import__('webdriver_manager.chrome').ChromeDriverManager().install()    webdriver_manager.chrome
     Create WebDriver    Chrome    options=${options}    executable_path=${chrome_path}
