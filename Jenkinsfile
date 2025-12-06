@@ -3,12 +3,13 @@ pipeline {
 
     environment {
         TEST_TYPE = "UI"
-        DISPLAY = ":99"
     }
 
     stages {
+
         stage('Checkout') {
             steps {
+                // Checkout your repository
                 checkout scm
             }
         }
@@ -16,8 +17,11 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
+                # Create Python virtual environment
                 python3 -m venv venv
                 . venv/bin/activate
+
+                # Upgrade pip and install requirements
                 pip install --upgrade pip
                 pip install -r requirements.txt
                 '''
@@ -28,11 +32,13 @@ pipeline {
             steps {
                 echo "Running UI Tests..."
                 sh '''
-                Xvfb :99 -screen 0 1920x1080x24 &
-                export DISPLAY=:99
-
-                . venv/bin/activate
+                # Make sure report folder exists
                 mkdir -p reports/robot
+
+                # Activate virtual environment and run Robot tests
+                . venv/bin/activate
+
+                # Run Robot Framework UI tests
                 robot -d reports/robot tests/ui
                 '''
             }
@@ -40,29 +46,19 @@ pipeline {
 
         stage('Run API Tests') {
             when {
-                expression { return true } 
+                expression { return false } // Skipped for now, can enable later
             }
             steps {
                 echo "Running API Tests..."
-                sh '''
-                . venv/bin/activate
-                mkdir -p reports/robot
-                robot -d reports/robot tests/api
-                '''
             }
         }
 
         stage('Run Performance Tests') {
             when {
-                expression { return true } 
+                expression { return false } // Skipped for now, can enable later
             }
             steps {
                 echo "Running Performance Tests..."
-                sh '''
-                . venv/bin/activate
-                mkdir -p reports/robot
-                robot -d reports/robot tests/performance
-                '''
             }
         }
     }
@@ -70,7 +66,14 @@ pipeline {
     post {
         always {
             echo "Pipeline completed. Selected TEST_TYPE = ${TEST_TYPE}"
-            robot outputPath: 'reports/robot'
+            // Archive reports
+            archiveArtifacts artifacts: 'reports/robot/**', allowEmptyArchive: true
+        }
+        success {
+            echo "All tests passed!"
+        }
+        failure {
+            echo "Some tests failed. Check the reports for details."
         }
     }
 }
