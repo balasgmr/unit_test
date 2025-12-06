@@ -11,7 +11,6 @@ Open Headless Chrome
     Call Method    ${options}    add_argument    --no-sandbox
     Call Method    ${options}    add_argument    --disable-dev-shm-usage
     Call Method    ${options}    add_argument    --remote-debugging-port=9222
-    Call Method    ${options}    add_argument    --disable-gpu
 
     Create WebDriver    Chrome    options=${options}    executable_path=/usr/bin/chromedriver
 
