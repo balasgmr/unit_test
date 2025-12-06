@@ -28,13 +28,11 @@ pipeline {
             steps {
                 echo "Running UI Tests..."
                 sh '''
-                # Start virtual display
                 Xvfb :99 -screen 0 1920x1080x24 &
                 export DISPLAY=:99
 
                 . venv/bin/activate
                 mkdir -p reports/robot
-                # Run all UI tests
                 robot -d reports/robot tests/ui
                 '''
             }
@@ -42,7 +40,7 @@ pipeline {
 
         stage('Run API Tests') {
             when {
-                expression { return true }  // set to false to skip
+                expression { return true } 
             }
             steps {
                 echo "Running API Tests..."
@@ -56,7 +54,7 @@ pipeline {
 
         stage('Run Performance Tests') {
             when {
-                expression { return true }  // set to false to skip
+                expression { return true } 
             }
             steps {
                 echo "Running Performance Tests..."
@@ -72,7 +70,6 @@ pipeline {
     post {
         always {
             echo "Pipeline completed. Selected TEST_TYPE = ${TEST_TYPE}"
-            # Publish Robot results
             robot outputPath: 'reports/robot'
         }
     }
