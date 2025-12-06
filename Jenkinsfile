@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         VENV_DIR = "venv"
-        TEST_TYPE = "UI"    // UI / API / PERF / ALL
+        TEST_TYPE = "UI"
     }
 
     stages {
@@ -18,22 +18,24 @@ pipeline {
             steps {
                 sh """
                 apt-get update
-                apt-get install -y wget unzip curl gnupg2
+                apt-get install -y wget unzip curl
 
-                echo "Installing Google Chrome..."
+                echo "Installing Chrome..."
                 wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
                 apt-get install -y ./google-chrome-stable_current_amd64.deb || apt --fix-broken install -y
 
+                echo "Chrome version:"
                 google-chrome --version
 
-                echo "Installing matching ChromeDriver..."
-                CHROME_VERSION=\$(google-chrome --version | sed 's/Google Chrome //g' | cut -d '.' -f 1-3)
-                echo "Chrome version detected: \$CHROME_VERSION"
+                echo "Detecting Chrome major version..."
+                CHROME_MAJOR=\$(google-chrome --version | grep -oP '\\d+' | head -1)
 
-                CHROMEDRIVER_VERSION=\$(curl -s https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_\$CHROME_VERSION)
-                echo "Using ChromeDriver version: \$CHROMEDRIVER_VERSION"
+                echo "Getting matching ChromeDriver..."
+                DRIVER_VERSION=\$(curl -s https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_\$CHROME_MAJOR)
 
-                wget -O chromedriver.zip https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/\$CHROMEDRIVER_VERSION/linux64/chromedriver-linux64.zip
+                echo "ChromeDriver version: \$DRIVER_VERSION"
+
+                wget -O chromedriver.zip https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/\$DRIVER_VERSION/linux64/chromedriver-linux64.zip
                 unzip chromedriver.zip
                 mv chromedriver-linux64/chromedriver /usr/bin/chromedriver
                 chmod +x /usr/bin/chromedriver
@@ -55,14 +57,11 @@ pipeline {
         }
 
         stage('Run UI Tests') {
-            when {
-                expression { env.TEST_TYPE == "UI" || env.TEST_TYPE == "ALL" }
-            }
             steps {
                 sh """
                 . ${VENV_DIR}/bin/activate
-                mkdir -p reports/ui
-                robot -d reports/ui tests/ui
+                mkdir -p reports/robot
+                robot -d reports/robot tests/ui
                 """
             }
         }
