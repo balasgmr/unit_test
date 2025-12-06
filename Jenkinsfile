@@ -3,13 +3,13 @@ pipeline {
 
     environment {
         TEST_TYPE = "UI"
+        VENV_DIR = "venv"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                // Checkout your repository
                 checkout scm
             }
         }
@@ -17,13 +17,10 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                # Create Python virtual environment
-                python3 -m venv venv
-                . venv/bin/activate
-
-                # Upgrade pip and install requirements
-                pip install --upgrade pip
-                pip install -r requirements.txt
+                    python3 -m venv ${VENV_DIR}
+                    . ${VENV_DIR}/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
                 '''
             }
         }
@@ -32,33 +29,38 @@ pipeline {
             steps {
                 echo "Running UI Tests..."
                 sh '''
-                # Make sure report folder exists
-                mkdir -p reports/robot
-
-                # Activate virtual environment and run Robot tests
-                . venv/bin/activate
-
-                # Run Robot Framework UI tests
-                robot -d reports/robot tests/ui
+                    . ${VENV_DIR}/bin/activate
+                    mkdir -p reports/robot
+                    robot -d reports/robot tests/ui
                 '''
             }
         }
 
         stage('Run API Tests') {
-            when {
-                expression { return false } // Skipped for now, can enable later
-            }
             steps {
                 echo "Running API Tests..."
+                sh '''
+                    . ${VENV_DIR}/bin/activate
+                    mkdir -p reports/api
+                    robot -d reports/api tests/api
+                '''
+            }
+            when {
+                expression { return env.TEST_TYPE == "API" || env.TEST_TYPE == "ALL" }
             }
         }
 
         stage('Run Performance Tests') {
-            when {
-                expression { return false } // Skipped for now, can enable later
-            }
             steps {
                 echo "Running Performance Tests..."
+                sh '''
+                    . ${VENV_DIR}/bin/activate
+                    mkdir -p reports/perf
+                    robot -d reports/perf tests/performance
+                '''
+            }
+            when {
+                expression { return env.TEST_TYPE == "PERF" || env.TEST_TYPE == "ALL" }
             }
         }
     }
@@ -66,14 +68,13 @@ pipeline {
     post {
         always {
             echo "Pipeline completed. Selected TEST_TYPE = ${TEST_TYPE}"
-            // Archive reports
-            archiveArtifacts artifacts: 'reports/robot/**', allowEmptyArchive: true
-        }
-        success {
-            echo "All tests passed!"
+            archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true
         }
         failure {
-            echo "Some tests failed. Check the reports for details."
+            echo "Pipeline failed. Check Robot Framework reports in reports/ folder."
+        }
+        success {
+            echo "Pipeline succeeded!"
         }
     }
 }
