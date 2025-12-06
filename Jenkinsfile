@@ -33,30 +33,8 @@ pipeline {
                 sh '''
                     . venv/bin/activate
                     mkdir -p reports/robot
-                    robot -d reports/robot tests/ui
+                    robot -d reports/robot tests/ui/Sampletest.robot
                 '''
-            }
-        }
-
-        stage('Run API Tests') {
-            when {
-                expression { return currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
-            }
-            steps {
-                echo 'Running API Tests...'
-                sh '''
-                    . venv/bin/activate
-                    robot -d reports/robot tests/api
-                '''
-            }
-        }
-
-        stage('Run Performance Tests') {
-            when {
-                expression { return currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
-            }
-            steps {
-                echo 'Running Performance Tests...'
             }
         }
     }

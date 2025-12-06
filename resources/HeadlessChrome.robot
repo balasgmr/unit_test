@@ -8,6 +8,4 @@ Open Headless Chrome
     Call Method    ${options}    add_argument    --window-size=1920,1080
     Call Method    ${options}    add_argument    --remote-debugging-port=9222
 
-    ${driver_path}=    Evaluate    __import__('webdriver_manager.chrome').ChromeDriverManager().install()    sys
-    Create WebDriver    Chrome    chrome_options=${options}    executable_path=${driver_path}
-
+    Create WebDriver    Chrome    chrome_options=${options}
