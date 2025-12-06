@@ -2,92 +2,65 @@ pipeline {
     agent any
 
     environment {
-        VENV = "${WORKSPACE}/venv"
-        ROBOT_REPORT_DIR = "${WORKSPACE}/reports/robot"
+        TEST_TYPE = "UI"
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                echo "Checking out code from Git..."
-                git branch: 'main', url: 'https://github.com/balasgmr/robot_jenkins_poc.git'
+                checkout scm
             }
         }
 
         stage('Install Dependencies') {
             steps {
-                echo "Setting up Python virtual environment and installing dependencies..."
-                sh '''
-                    python3 -m venv venv
-                    . venv/bin/activate
-                    pip install --upgrade pip
-                    pip install -r requirements.txt
-                '''
+                sh """
+                python3 -m venv venv
+                . venv/bin/activate
+                pip install --upgrade pip
+                pip install -r requirements.txt
+                """
             }
         }
 
         stage('Run UI Tests') {
+            when { expression { env.TEST_TYPE == "UI" } }
             steps {
-                echo "Running Robot Framework UI tests..."
-                sh '''
-                    . venv/bin/activate
-                    mkdir -p reports/robot
-                    robot -d reports/robot tests/ui
-                '''
-            }
-        }
-
-        stage('Publish Robot Results') {
-            steps {
-                echo "Publishing Robot Framework test results..."
-                robot outputPath: 'reports/robot'
+                echo "Running UI Tests..."
+                sh """
+                . venv/bin/activate
+                mkdir -p reports/robot
+                robot -d reports/robot --variable HEADLESS:True tests/ui
+                """
             }
         }
 
         stage('Run API Tests') {
-            when {
-                expression { currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
-            }
+            when { expression { env.TEST_TYPE == "API" } }
             steps {
-                echo "Running API tests..."
-                sh '''
-                    . venv/bin/activate
-                    mkdir -p reports/api
-                    robot -d reports/api tests/api
-                '''
+                sh """
+                . venv/bin/activate
+                robot -d reports/robot tests/api
+                """
             }
         }
 
         stage('Run Performance Tests') {
-            when {
-                expression { currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
-            }
+            when { expression { env.TEST_TYPE == "PERF" } }
             steps {
-                echo "Running Performance tests..."
-                sh '''
-                    . venv/bin/activate
-                    mkdir -p reports/perf
-                    robot -d reports/perf tests/performance
-                '''
+                sh """
+                . venv/bin/activate
+                robot -d reports/robot tests/perf
+                """
             }
         }
     }
 
     post {
         always {
-            echo "Cleaning up virtual environment..."
-            sh '''
-                deactivate || true
-                rm -rf venv
-            '''
-            echo "Pipeline finished."
-        }
-        success {
-            echo "Pipeline completed successfully!"
-        }
-        failure {
-            echo "Pipeline failed. Check Robot test reports for details."
+            echo "Pipeline completed. Selected TEST_TYPE = ${TEST_TYPE}"
+            robot outputPath: 'reports/robot'
         }
     }
 }
