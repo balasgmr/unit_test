@@ -11,6 +11,13 @@ pipeline {
     }
 
     stages {
+
+        stage('Clean Workspace') {
+            steps {
+                deleteDir()  // Clean workspace to avoid leftover tests
+            }
+        }
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -35,6 +42,28 @@ pipeline {
                     mkdir -p reports/robot
                     robot -d reports/robot tests/ui/Sampletest.robot
                 '''
+            }
+        }
+
+        stage('Run API Tests') {
+            when {
+                expression { return currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
+            }
+            steps {
+                echo 'Running API Tests...'
+                sh '''
+                    . venv/bin/activate
+                    robot -d reports/robot tests/api
+                '''
+            }
+        }
+
+        stage('Run Performance Tests') {
+            when {
+                expression { return currentBuild.resultIsBetterOrEqualTo('SUCCESS') }
+            }
+            steps {
+                echo 'Running Performance Tests...'
             }
         }
     }
