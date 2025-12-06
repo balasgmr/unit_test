@@ -1,69 +1,84 @@
 pipeline {
     agent {
         docker {
-            image 'sambacha/robotframework-chrome:latest'  // prebuilt Robot + Chrome image
-            args '--shm-size=2g'  // prevents Chrome crashes in Docker
+            image 'jenkins-chrome-agent:latest'   // Your custom image
+            args '-u root:root'                   // Run as root inside container
         }
     }
 
     environment {
         TEST_TYPE = "UI"
+        ROBOT_REPORT_DIR = "reports/robot"
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Install Python Dependencies') {
             steps {
-                sh """
+                sh '''
                 python3 -m venv venv
                 . venv/bin/activate
                 pip install --upgrade pip
                 pip install -r requirements.txt
-                """
+                '''
             }
         }
 
         stage('Run UI Tests') {
             steps {
                 echo "Running UI Tests..."
-                sh """
-                mkdir -p reports/robot
+                sh '''
+                mkdir -p ${ROBOT_REPORT_DIR}
                 . venv/bin/activate
-                robot -d reports/robot tests/ui
-                """
+                robot -d ${ROBOT_REPORT_DIR} tests/ui
+                '''
             }
         }
 
         stage('Run API Tests') {
+            when {
+                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+            }
             steps {
                 echo "Running API Tests..."
-                sh """
+                sh '''
                 . venv/bin/activate
-                robot -d reports/robot tests/api
-                """
+                robot -d ${ROBOT_REPORT_DIR} tests/api
+                '''
             }
         }
 
         stage('Run Performance Tests') {
+            when {
+                expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+            }
             steps {
                 echo "Running Performance Tests..."
-                sh """
-                . venv/bin/activate
-                robot -d reports/robot tests/performance
-                """
+                sh 'k6 run tests/performance/test.js'
             }
         }
     }
 
     post {
         always {
-            echo "Publishing Robot results..."
-            robot outputPath: 'reports/robot'
+            echo "Publishing Robot Framework Results..."
+            robot outputPath: "${ROBOT_REPORT_DIR}/output.xml",
+                  logPath: "${ROBOT_REPORT_DIR}/log.html",
+                  reportPath: "${ROBOT_REPORT_DIR}/report.html"
+        }
+
+        success {
+            echo "Pipeline completed successfully!"
+        }
+
+        failure {
+            echo "Pipeline failed!"
         }
     }
 }
