@@ -2,19 +2,25 @@ pipeline {
     agent {
         docker {
             image 'selenium/standalone-chrome:latest'
-            args '-u root:root'  
+            args '-u root:root'
         }
     }
 
     environment {
         TEST_TYPE = "UI"
+        VENV_PATH = "${WORKSPACE}/venv"
+    }
+
+    options {
+        // Clean workspace before build
+        skipDefaultCheckout false
+        buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 
     stages {
-
         stage('Clean Workspace') {
             steps {
-                deleteDir()  // Clean workspace to avoid leftover tests
+                deleteDir()
             }
         }
 
@@ -26,22 +32,23 @@ pipeline {
 
         stage('Setup Python Environment') {
             steps {
-                sh '''
-                    python3 -m venv venv
-                    . venv/bin/activate
+                sh """
+                    python3 -m venv ${VENV_PATH}
+                    . ${VENV_PATH}/bin/activate
                     pip install --upgrade pip
                     pip install -r requirements.txt
-                '''
+                """
             }
         }
 
         stage('Run UI Tests') {
             steps {
-                sh '''
-                    . venv/bin/activate
+                sh """
+                    . ${VENV_PATH}/bin/activate
                     mkdir -p reports/robot
+                    # Run only Sampletest.robot to avoid failing Unit Test
                     robot -d reports/robot tests/ui/Sampletest.robot
-                '''
+                """
             }
         }
 
@@ -51,10 +58,10 @@ pipeline {
             }
             steps {
                 echo 'Running API Tests...'
-                sh '''
-                    . venv/bin/activate
+                sh """
+                    . ${VENV_PATH}/bin/activate
                     robot -d reports/robot tests/api
-                '''
+                """
             }
         }
 
