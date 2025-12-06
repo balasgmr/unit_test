@@ -26,41 +26,44 @@ pipeline {
         }
 
         stage('Run UI Tests') {
+            when {
+                expression { return env.TEST_TYPE == "UI" || env.TEST_TYPE == "ALL" }
+            }
             steps {
                 echo "Running UI Tests..."
                 sh '''
                     . ${VENV_DIR}/bin/activate
-                    mkdir -p reports/robot
-                    robot -d reports/robot tests/ui
+                    mkdir -p reports/robot/ui
+                    robot -d reports/robot/ui tests/ui
                 '''
             }
         }
 
         stage('Run API Tests') {
+            when {
+                expression { return env.TEST_TYPE == "API" || env.TEST_TYPE == "ALL" }
+            }
             steps {
                 echo "Running API Tests..."
                 sh '''
                     . ${VENV_DIR}/bin/activate
-                    mkdir -p reports/api
-                    robot -d reports/api tests/api
+                    mkdir -p reports/robot/api
+                    robot -d reports/robot/api tests/api
                 '''
-            }
-            when {
-                expression { return env.TEST_TYPE == "API" || env.TEST_TYPE == "ALL" }
             }
         }
 
         stage('Run Performance Tests') {
+            when {
+                expression { return env.TEST_TYPE == "PERF" || env.TEST_TYPE == "ALL" }
+            }
             steps {
                 echo "Running Performance Tests..."
                 sh '''
                     . ${VENV_DIR}/bin/activate
-                    mkdir -p reports/perf
-                    robot -d reports/perf tests/performance
+                    mkdir -p reports/robot/perf
+                    robot -d reports/robot/perf tests/performance
                 '''
-            }
-            when {
-                expression { return env.TEST_TYPE == "PERF" || env.TEST_TYPE == "ALL" }
             }
         }
     }
@@ -68,11 +71,15 @@ pipeline {
     post {
         always {
             echo "Pipeline completed. Selected TEST_TYPE = ${TEST_TYPE}"
-            archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true
+
+            // Archive all Robot reports
+            archiveArtifacts artifacts: 'reports/robot/**/*', allowEmptyArchive: true
         }
+
         failure {
-            echo "Pipeline failed. Check Robot Framework reports in reports/ folder."
+            echo "Pipeline failed. Reports saved under reports/robot/"
         }
+
         success {
             echo "Pipeline succeeded!"
         }
