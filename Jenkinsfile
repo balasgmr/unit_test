@@ -2,7 +2,7 @@ pipeline {
     agent {
         docker {
             image 'python:3.11-slim'
-            args '--shm-size=2g'  // Chrome needs more shared memory
+            args '--shm-size=2g'  // Important for Chrome headless
         }
     }
 
@@ -49,7 +49,6 @@ pipeline {
 
         stage('Run UI Tests') {
             steps {
-                echo "Running UI Tests..."
                 sh '''
                 . venv/bin/activate
                 mkdir -p reports/robot
@@ -60,10 +59,8 @@ pipeline {
 
         stage('Run API Tests') {
             steps {
-                echo "Running API Tests..."
                 sh '''
                 . venv/bin/activate
-                mkdir -p reports/robot
                 robot -d reports/robot tests/api
                 '''
             }
@@ -71,10 +68,8 @@ pipeline {
 
         stage('Run Performance Tests') {
             steps {
-                echo "Running Performance Tests..."
                 sh '''
                 . venv/bin/activate
-                mkdir -p reports/robot
                 robot -d reports/robot tests/performance
                 '''
             }
