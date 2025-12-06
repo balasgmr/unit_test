@@ -14,4 +14,4 @@ Verify Dropdown And Continue Steps
     Wait Until Element Is Visible    xpath://select[@id='oldSelectMenu']    10s
     Select From List By Value        xpath://select[@id='oldSelectMenu']    2
     ${selected}=    Get Selected List Label    xpath://select[@id='oldSelectMenu']
-    Should Be Equal                  ${selected}    Saab
+    Should Be Equal    ${selected}    Saab
